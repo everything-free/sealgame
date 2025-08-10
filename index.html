@@ -7,12 +7,17 @@
   <style>
     body {
       display: flex;
+      flex-direction: column;
       justify-content: center;
+      align sny;
       align-items: center;
       height: 100vh;
       margin: 0;
       background-color: #f0f0f0;
       font-family: Arial, sans-serif;
+    }
+    .game-container {
+      text-align: center;
     }
     .game-board {
       display: grid;
@@ -22,6 +27,7 @@
       padding: 20px;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      margin-top: 20px;
     }
     .card {
       width: 100px;
@@ -51,10 +57,47 @@
       background-color: #2ecc71;
       cursor: default;
     }
+    .game-info {
+      margin-bottom: 10px;
+      font-size: 18px;
+    }
+    .moves-setting {
+      margin-bottom: 10px;
+    }
+    input[type="number"] {
+      padding: 8px;
+      font-size: 16px;
+      width: 80px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      margin-right: 10px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      background-color: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    button:hover {
+      background-color: #c0392b;
+    }
   </style>
 </head>
 <body>
-  <div class="game-board" id="gameBoard"></div>
+  <div class="game-container">
+    <div class="game-info">
+      Ходы: <span id="moves">0</span> | Ошибки: <span id="mistakes">0</span> | Осталось ходов: <span id="remainingMoves">50</span>
+    </div>
+    <div class="moves-setting">
+      <input type="number" id="maxMovesInput" min="10" max="100" value="50" placeholder="Лимит ходов">
+      <button id="setMaxMoves">Установить</button>
+    </div>
+    <button id="restartButton">Начать заново</button>
+    <div class="game-board" id="gameBoard"></div>
+  </div>
   <script>
     // Массив с локальными файлами изображений
     const images = [
@@ -78,10 +121,13 @@
       'images/seal18.jpg'
     ];
 
-    // Дублируем картинки для пар
-    const cards = [...images, ...images];
+    let maxMoves = 50;
+    let cards = [...images, ...images];
     let flippedCards = [];
     let matchedPairs = 0;
+    let moves = 0;
+    let mistakes = 0;
+    let gameActive = true;
 
     // Перемешиваем карточки
     function shuffle(array) {
@@ -95,6 +141,7 @@
     // Создаем игровое поле
     function createBoard() {
       const board = document.getElementById('gameBoard');
+      board.innerHTML = ''; // Очищаем поле
       shuffle(cards).forEach((image, index) => {
         const card = document.createElement('div');
         card.classList.add('card');
@@ -109,12 +156,15 @@
 
     // Переворачиваем карточку
     function flipCard() {
-      if (flippedCards.length < 2 && !flippedCards.includes(this) && !this.classList.contains('matched')) {
-        this.classList.add('flipped');
-        flippedCards.push(this);
-        if (flippedCards.length === 2) {
-          checkMatch();
-        }
+      if (!gameActive || flippedCards.length >= 2 || flippedCards.includes(this) || this.classList.contains('matched')) {
+        return;
+      }
+      this.classList.add('flipped');
+      flippedCards.push(this);
+      if (flippedCards.length === 2) {
+        moves++;
+        checkMatch();
+        updateGameInfo();
       }
     }
 
@@ -127,19 +177,60 @@
         matchedPairs++;
         flippedCards = [];
         if (matchedPairs === images.length) {
+          gameActive = false;
           setTimeout(() => alert('Поздравляем! Вы выиграли!'), 500);
         }
       } else {
+        mistakes++; // Ошибка засчитывается при каждом ходе, если карты не совпадают
         setTimeout(() => {
           card1.classList.remove('flipped');
           card2.classList.remove('flipped');
           flippedCards = [];
         }, 1000);
       }
+      if (moves >= maxMoves && matchedPairs < images.length) {
+        gameActive = false;
+        setTimeout(() => alert('Игра окончена! Ходы закончились.'), 500);
+      }
+    }
+
+    // Обновляем информацию об игре
+    function updateGameInfo() {
+      document.getElementById('moves').textContent = moves;
+      document.getElementById('mistakes').textContent = mistakes;
+      document.getElementById('remainingMoves').textContent = maxMoves - moves;
+    }
+
+    // Устанавливаем лимит ходов
+    function setMaxMoves() {
+      const input = document.getElementById('maxMovesInput');
+      const newMaxMoves = parseInt(input.value);
+      if (newMaxMoves >= 10 && newMaxMoves <= 100) {
+        maxMoves = newMaxMoves;
+        restartGame();
+      } else {
+        alert('Пожалуйста, введите число от 10 до 100.');
+      }
+    }
+
+    // Перезапускаем игру
+    function restartGame() {
+      moves = 0;
+      mistakes = 0;
+      matchedPairs = 0;
+      flippedCards = [];
+      gameActive = true;
+      updateGameInfo();
+      createBoard();
     }
 
     // Инициализируем игру
     createBoard();
+    updateGameInfo();
+
+    // Добавляем обработчики для кнопок
+    document.getElementById('restartButton').addEventListener('click', restartGame);
+    document.getElementById('setMaxMoves').addEventListener('click', setMaxMoves);
   </script>
 </body>
 </html>
